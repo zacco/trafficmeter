@@ -1,0 +1,75 @@
+include Makefile.common
+
+#
+# The GTKDIR macro defines the location of the GTK installation.
+# It is assumed to be the root directory of the boundle that can
+# be downloaded from e.g:
+# http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.18/gtk+-bundle_2.18.7-20100213_win32.zip
+# The WinPCAP Developer's Pack is available here:
+# http://www.winpcap.org/devel.htm
+# The current settings assume both are extracted in C:\ and
+# the MS Visual Studio 2008 is also installed to the default location.
+#
+
+WPDPACK = "C:\WpdPack"
+GTKPATH = "C:\gtk+-bundle_2.18.7-20100213_win32"
+MSSDK   = "C:\Program Files\Microsoft SDKs\Windows\v6.0A"
+MSVC    = "C:\Program Files\Microsoft Visual Studio 9.0\VC"
+
+INCLUDEPATHS = /I $(MSSDK)\Include \
+ 							 /I $(MSVC)\include \
+							 /I $(WPDPACK)\Include
+
+LIBS = $(WPDPACK)\Lib\wpcap.lib
+
+SOURCES = trafficmeter.c
+OBJECTS = $(SOURCES:.c=.obj)
+CFLAGS = -DWIN32 $(INCLUDEPATHS)
+CC = cl.exe
+LINK = link.exe
+
+# Link option:
+LINKFLAGS = /INCREMENTAL:NO /SUBSYSTEM:WINDOWS \
+						/LIBPATH:$(MSSDK)\Lib /LIBPATH:$(MSVC)\lib $(LIBS)
+
+PROGRAM=$(PROGRAM).exe
+
+#
+# Default target: the first target is the default target.
+# Just type "nmake -f Makefile.nmake" to build it.
+#
+
+all: $(PROGRAM)
+
+#
+# Link target: automatically builds its object dependencies before
+# executing its link command.
+#
+
+$(PROGRAM): $(OBJECTS) __gtk_libs.mak
+	$(LINK) $(LINKFLAGS) $(OBJECTS) @__gtk_libs.mak
+	@del __gtk_libs.mak
+
+#
+# Object targets: rules that define objects, their dependencies, and
+# a list of commands for compilation.
+#
+
+trafficmeter.obj: trafficmeter.c __gtk_cflags.mak
+	$(CC) $(CFLAGS) -c @__gtk_cflags.mak trafficmeter.c
+	@del __gtk_cflags.mak
+
+__gtk_cflags.mak:
+	pkg-config --msvc-syntax --cflags gtk+-2.0 >$@
+
+__gtk_libs.mak:
+	for /F "delims==" %i in ('pkg-config --msvc-syntax --libs gtk+-2.0 gthread-2.0') \
+		do echo %i >$@
+
+#
+# Clean target: "nmake -f Makefile.nmake clean" to remove unwanted objects and executables.
+#
+
+clean:
+	del -f $(OBJECTS) $(PROGRAM)
+
