@@ -1,0 +1,64 @@
+1. DESCRIPTION
+
+Once upon a time. an operator has sold mobile internet subscription with limited amount of download; however, the actual traffic balance could not be checked, only by sending an SMS, which was not at all free. Really nice, isn't it?  In Windows, the network interface monitor only displays the number of packets, which does not help much, and anyway, it cannot save the values for the next connection. Therefore, I wrote tghis traffic meter tool.
+In priciple, it is a simple downloaded byte counter for the selected interface. The GUI is written in GTK+-2.0 and the PCAP library is used to snoop the interfaces.
+Two limits can be set: when the lower soft limit is reached, the green background behind the counter will change to orange, and when the upper hard limit is reached, the colour will change to red. Afterwards, you will pay extra to the operator, if you have the above like package.
+
+
+
+2. INSTALL
+
+2.1. Linux
+
+With most Linux distributions, you will have GTK+ and the PCAP library by default installed. If not, you should visit your Linux distribution's website and find and install these packages. Optionally, you can get the packages from http://gtk.org and http://www.tcpdump.org, and you can build yourself.
+When these dependencies are fulfilled, you only have to make:
+$ make
+It is up to you then, where you install the binary executable file.
+
+2.2. Windows
+
+Unlike Linux, GTK+ and PCAP are not common on Windows, so you most probably have to get these yourself from http://gtk.org and http://www.winpcap.org, respectively.
+As for GTK+, it is recommended to download a so called boundle that contains everything. Extract the ZIP archive where you like and modify Makefile.nmake accordingly to build (consult Makefile.nmake for details). Add the path to the bin directory in your boundle to the Path environment variable that the executable can find the required DLLs.
+For PCAP, you need the autoinstaller only, if you want to run the precompiled EXE file. If you want to build, you also need to download the Developer's Pack and modify Makefile.nmake accordingly (consult Makefile.nmake for details).
+When everything is in place, you only need to make:
+> nmake.exe -f Makefile.nmake
+Install the executable file where you like.
+As the build on Windows may be weary, the executable is also part of the package. Remember that even in this case you will need the required DLLs (i.e. you need GTK+ and WinPCAP)!
+In order to run the application, you may also need the Microsoft Visual C++ Redistributable Package:
+http://www.microsoft.com/downloads/details.aspx?FamilyID=9b2da534-3e03-4391-8a4d-074b9f2bc1bf&displaylang=en
+
+
+
+3. DISCLAIMER
+
+This is a first GTK+ application, so the experienced GTK+ programmers are encouraged to educate me to apply better solutions! Every comment is most welcome on lajos at zaccomer dot org!
+
+
+
+4. LICENSE
+
+I hereby introduce a new type of license: DWYL
+It precisely means you can Do Whatever You Like!
+
+
+
+5. TODO
+
+  This is a list of things that have come across my mind (not in prio order)
+  and that I may never implement :P
+
+  TODO-001: Save/Load/Set configuration values per network interface
+
+  TODO-002: The location of the rc and log file should be configurable.
+
+  TODO-003: Allow exclusion of network and transport headers. Configurable. Or it may be
+  always displayed in distinct rows.
+
+  TODO-004: Command line options: help (should be available in ABOUT, too), debug
+
+  TODO-005: Display how much time has been spent since start and speed (kbps)
+
+  TODO-005: Print the actual counter every configurable number of seconds (g_TO will be needed!)
+
+
+
