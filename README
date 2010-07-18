@@ -1,8 +1,8 @@
 1. DESCRIPTION
 
-Once upon a time. an operator has sold mobile internet subscription with limited amount of download; however, the actual traffic balance could not be checked, only by sending an SMS, which was not at all free. Really nice, isn't it?  In Windows, the network interface monitor only displays the number of packets, which does not help much, and anyway, it cannot save the values for the next connection. Therefore, I wrote tghis traffic meter tool.
+Once upon a time, an operator has sold mobile internet subscription with limited amount of download; however, the actual traffic balance could not be checked, only by sending an SMS, which was not at all free. Really nice, isn't it?  In Windows, the network interface monitor only displays the number of packets, which does not help much, and anyway, it cannot save the values for the next connection. Therefore, I wrote this traffic meter tool.
 In priciple, it is a simple downloaded byte counter for the selected interface. The GUI is written in GTK+-2.0 and the PCAP library is used to snoop the interfaces.
-Two limits can be set: when the lower soft limit is reached, the green background behind the counter will change to orange, and when the upper hard limit is reached, the colour will change to red. Afterwards, you will pay extra to the operator, if you have the above like package.
+Two limits can be set: when the lower soft limit is reached, the pale yellow (info) background behind the counter will change to orange (warning), and when the upper hard limit is reached, the colour will change to red (error). Afterwards, you will pay extra to the operator, if you have the above like package.
 
 
 
