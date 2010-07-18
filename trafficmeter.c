@@ -17,10 +17,13 @@
    0.0.3    Windows build corrections for MSVC9
             Interface combo sensitivity change at start/stop
 
+   0.0.4    Tray icon view, hide when minimized based on:
+              http://www.codeproject.com/KB/cross-platform/GTKTrayIcon.aspx
+            Text markup replaced with info bar
 */
 
 
-#define VERSION "0.0.3"
+#define VERSION "0.0.4"
 
 #ifdef WIN32
 #define _WINSOCKAPI_
@@ -49,10 +52,13 @@
 FILE *log_file = NULL;
 
 GtkWidget *window;
+GtkWidget *bar;
 GtkWidget *label;
 GtkWidget *combo;
 GtkWidget *button;
 GtkWidget *button_label;
+gchar *dev;
+GtkStatusIcon *tray_icon;
 
 /* Configuration globals */
 typedef enum { UNIT_AUTO
@@ -85,6 +91,50 @@ void error_dialog (gchar *text, gboolean from_thread)
   if (from_thread)
     gdk_threads_leave();
   gtk_widget_destroy (dialog);
+}
+
+static void tray_show(GtkMenuItem *item, gpointer window) 
+{
+  gtk_widget_show(GTK_WIDGET(window));
+  gtk_window_deiconify(GTK_WINDOW(window));    
+}
+
+static void tray_quit(GtkMenuItem *item, gpointer user_data) 
+{
+    gtk_main_quit();
+}
+
+static void tray_icon_activated(GObject *trayIcon, gpointer window)
+{
+  gtk_widget_show(GTK_WIDGET(window));
+  gtk_window_deiconify(GTK_WINDOW(window));
+}
+
+static void tray_icon_popup(GtkStatusIcon *status_icon, guint button, guint32 activate_time, gpointer popUpMenu)
+{
+  gtk_menu_popup(GTK_MENU(popUpMenu), NULL, NULL, gtk_status_icon_position_menu, status_icon, button, activate_time);
+}
+
+static gboolean window_state_event (GtkWidget *widget, GdkEventWindowState *event, gpointer trayIcon)
+{
+  if (    event->changed_mask == GDK_WINDOW_STATE_ICONIFIED
+       && (    event->new_window_state == GDK_WINDOW_STATE_ICONIFIED
+            || event->new_window_state == (GDK_WINDOW_STATE_ICONIFIED | GDK_WINDOW_STATE_MAXIMIZED)
+          )
+     )
+  {
+      gtk_widget_hide (GTK_WIDGET(widget));
+      gtk_status_icon_set_visible(GTK_STATUS_ICON(trayIcon), TRUE);
+  }
+  else if (    event->changed_mask == GDK_WINDOW_STATE_WITHDRAWN
+            && (    event->new_window_state == GDK_WINDOW_STATE_ICONIFIED
+                 || event->new_window_state == (GDK_WINDOW_STATE_ICONIFIED | GDK_WINDOW_STATE_MAXIMIZED)
+               )
+          )
+  {
+      gtk_status_icon_set_visible(GTK_STATUS_ICON(trayIcon), FALSE);
+  }
+  return TRUE;
 }
 
 
@@ -188,8 +238,12 @@ static void set_limits(gpointer data, GtkWidget *widget)
 static void help_about(gpointer data, GtkWidget *widget)
 {
   const gchar *authors[] = {
-    "Lajos Zaccomer (lajos@zaccomer.org)",
-    NULL
+    "Lajos Zaccomer (lajos@zaccomer.org)\n\n"
+    "The code was written based on the official GTK+ tutorial at "
+    "http://library.gnome.org/devel/gtk-tutorial/stable/\n"
+    "Thanx to Ranjeetsih for his description of tray icon use on "
+    "http://www.codeproject.com/KB/cross-platform/GTKTrayIcon.aspx"
+    , NULL
   };
 
   gtk_show_about_dialog (GTK_WINDOW (window),
@@ -203,8 +257,18 @@ static void help_about(gpointer data, GtkWidget *widget)
 
 void update_counter_label(gboolean from_thread)
 {
-  char *markup;
-  char textbuf[128];
+  #define TEXTBUFLEN 128
+  char *textbuf;
+  guint devlen = strlen(dev);  
+  char *traytext = (char *)malloc(devlen + 2 + TEXTBUFLEN);
+
+  if (traytext == NULL) {
+    g_print("error: out of memory, unable to update counter display\n");
+    return;
+  }
+
+  sprintf(traytext, "%s: ", dev);
+  textbuf = traytext + devlen + 2;
 
   if (data_mutex) g_mutex_lock (data_mutex);
   switch (unit) {
@@ -234,27 +298,16 @@ void update_counter_label(gboolean from_thread)
   if (data_mutex) g_mutex_unlock (data_mutex);
 
   if (bytes > hard_limit) {
-    markup =
-      g_markup_printf_escaped (
-        "<span size=\"xx-large\" weight=\"ultrabold\" "
-        "background=\"red\">%s</span>", textbuf);
+    gtk_info_bar_set_message_type (GTK_INFO_BAR (bar), GTK_MESSAGE_ERROR);
   } else if (bytes > soft_limit) {
-    markup =
-      g_markup_printf_escaped (
-        "<span size=\"xx-large\" weight=\"ultrabold\" "
-        "background=\"orange\">%s</span>", textbuf);
-  } else {
-    markup =
-      g_markup_printf_escaped (
-        "<span size=\"xx-large\" weight=\"ultrabold\" "
-        "background=\"green\">%s</span>", textbuf);
-  }
+    gtk_info_bar_set_message_type (GTK_INFO_BAR (bar), GTK_MESSAGE_WARNING);
+  } 
+
+  gtk_status_icon_set_tooltip (tray_icon, traytext);
 
   if (from_thread)
     gdk_threads_enter();
-  //gtk_label_set_text( GTK_LABEL (label), textbuf);
-  gtk_label_set_markup( GTK_LABEL (label), markup);
-  g_free (markup);
+  gtk_label_set_text( GTK_LABEL (label), textbuf);
   if (from_thread)
     gdk_threads_leave();
 }
@@ -283,7 +336,7 @@ static void *counter(void *arg)
   struct pcap_pkthdr header;	/* The header that pcap gives us */
 	const u_char *packet;		/* The actual packet */
   pcap_t *handle = NULL;  
-  gchar *dev = gtk_combo_box_get_active_text (GTK_COMBO_BOX (combo));
+  dev = gtk_combo_box_get_active_text (GTK_COMBO_BOX (combo));
 
   if (dev == NULL) {
     error_dialog("You either have no device or "
@@ -371,6 +424,7 @@ static gboolean reset(GtkWidget *widget, GdkEvent *event, gpointer data)
   (void) fprintf (log_file, "%s\tRESET: bytes = %llu\n",
                   asctime(localtime(&t)), bytes);
 
+  gtk_info_bar_set_message_type (GTK_INFO_BAR (bar), GTK_MESSAGE_INFO);
   update_counter_label(FALSE);
 
   return FALSE;
@@ -415,6 +469,7 @@ int main(int argc, char *argv[])
   GtkWidget *menu;
   GtkWidget *item;
   GSList *group;
+  GtkWidget *tray_menu, *tray_menu_item_show, *tray_menu_item_quit;
 
   pcap_if_t *iface = NULL;
   pcap_if_t *iflst = NULL;
@@ -582,9 +637,11 @@ int main(int argc, char *argv[])
   gtk_combo_box_set_active (GTK_COMBO_BOX(combo), ifx);
 
   /* Counter */
-  label = gtk_label_new("0 Byte");
-  update_counter_label(FALSE);
-  gtk_box_pack_start (GTK_BOX(vbox), label, TRUE, TRUE, 0);
+  bar = gtk_info_bar_new ();
+  gtk_info_bar_set_message_type (GTK_INFO_BAR (bar), GTK_MESSAGE_INFO);
+  label = gtk_label_new ("0 bytes");
+  gtk_box_pack_start (GTK_BOX (gtk_info_bar_get_content_area (GTK_INFO_BAR (bar))), label, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX(vbox), bar, TRUE, TRUE, 0);
 
   hbox = gtk_hbox_new (TRUE, 10);
   gtk_box_pack_start (GTK_BOX(vbox), hbox, TRUE, TRUE, 0);
@@ -609,10 +666,29 @@ int main(int argc, char *argv[])
   g_signal_connect (G_OBJECT (button), "clicked",
 		                G_CALLBACK (delete_event), (gpointer) NULL);
 
+  /* Tray icon */
+  tray_icon = gtk_status_icon_new_from_stock (GTK_STOCK_GO_DOWN);
+  tray_menu = gtk_menu_new();
+  tray_menu_item_show = gtk_menu_item_new_with_label ("Show");
+  tray_menu_item_quit = gtk_menu_item_new_with_label ("Quit");
+  g_signal_connect (G_OBJECT (tray_menu_item_show), "activate", G_CALLBACK (tray_show), window);
+  g_signal_connect (G_OBJECT (tray_menu_item_quit), "activate", G_CALLBACK (tray_quit), NULL);
+  gtk_menu_shell_append (GTK_MENU_SHELL (tray_menu), tray_menu_item_show);
+  gtk_menu_shell_append (GTK_MENU_SHELL (tray_menu), tray_menu_item_quit);
+  gtk_widget_show_all (tray_menu);
+  g_signal_connect(GTK_STATUS_ICON (tray_icon), "activate", GTK_SIGNAL_FUNC (tray_icon_activated), window);
+  g_signal_connect(GTK_STATUS_ICON (tray_icon), "popup-menu", GTK_SIGNAL_FUNC (tray_icon_popup), tray_menu);
+  gtk_status_icon_set_visible(tray_icon, FALSE); //set icon initially invisible
+  g_signal_connect (G_OBJECT (window), "window-state-event", G_CALLBACK (window_state_event), tray_icon);
+
+
+  dev = gtk_combo_box_get_active_text (GTK_COMBO_BOX (combo));
+  update_counter_label(FALSE);
+
   gtk_widget_show_all (window);
 
   data_mutex = g_mutex_new ();
-
+  
   gdk_threads_enter();
   gtk_main();
   gdk_threads_leave();
