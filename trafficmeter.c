@@ -20,10 +20,12 @@
    0.0.4    Tray icon view, hide when minimized based on:
               http://www.codeproject.com/KB/cross-platform/GTKTrayIcon.aspx
             Text markup replaced with info bar
+
+   0.0.5    Bugfix: No counter update without any device (caused segfault)            
 */
 
 
-#define VERSION "0.0.4"
+#define VERSION "0.0.5"
 
 #ifdef WIN32
 #define _WINSOCKAPI_
@@ -425,7 +427,8 @@ static gboolean reset(GtkWidget *widget, GdkEvent *event, gpointer data)
                   asctime(localtime(&t)), bytes);
 
   gtk_info_bar_set_message_type (GTK_INFO_BAR (bar), GTK_MESSAGE_INFO);
-  update_counter_label(FALSE);
+  if (dev != NULL)
+    update_counter_label(FALSE);
 
   return FALSE;
 }
@@ -681,14 +684,17 @@ int main(int argc, char *argv[])
   gtk_status_icon_set_visible(tray_icon, FALSE); //set icon initially invisible
   g_signal_connect (G_OBJECT (window), "window-state-event", G_CALLBACK (window_state_event), tray_icon);
 
-
+  
   dev = gtk_combo_box_get_active_text (GTK_COMBO_BOX (combo));
-  update_counter_label(FALSE);
+  if (dev != NULL)
+    update_counter_label(FALSE);
+
+  printf("vazze\n");
 
   gtk_widget_show_all (window);
 
   data_mutex = g_mutex_new ();
-  
+
   gdk_threads_enter();
   gtk_main();
   gdk_threads_leave();
