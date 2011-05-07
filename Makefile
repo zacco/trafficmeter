@@ -13,3 +13,6 @@ trafficmeter: trafficmeter.c
 clean:
 	rm -f trafficmeter
 
+archive:
+	tar -cvjf trafficmeter.`date +%y%m%d%H%M%S`.tar.gz trafficmeter.c Makefile*
+
