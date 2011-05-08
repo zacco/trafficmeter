@@ -24,7 +24,7 @@ LIBS = $(WPDPACK)\Lib\wpcap.lib
 
 SOURCES = trafficmeter.c
 OBJECTS = $(SOURCES:.c=.obj)
-CFLAGS = -DWIN32 $(INCLUDEPATHS)
+CFLAGS = $(CFLAGS) -DWIN32 $(INCLUDEPATHS)
 CC = cl.exe
 LINK = link.exe
 
@@ -47,6 +47,7 @@ all: $(PROGRAM)
 #
 
 $(PROGRAM): $(OBJECTS) __gtk_libs.mak
+	echo $(CFLAGS)
 	$(LINK) $(LINKFLAGS) $(OBJECTS) @__gtk_libs.mak
 	@del __gtk_libs.mak
 

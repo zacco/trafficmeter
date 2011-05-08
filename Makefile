@@ -1,6 +1,6 @@
 include Makefile.common
 
-CFLAGS = -g -Wall
+CFLAGS += -g -Wall
 CC = gcc
 
 all: $(PROGRAM)

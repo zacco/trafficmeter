@@ -25,10 +25,12 @@
 
    0.0.6    Download graph + status bar to display bar size
             Preparation for migrating from GTK+ 2.x to GTK+ 3
+
+   0.0.7    Makefile bugfix (some more GTK+ 2.x to GTK+ 3 stuffs)
 */
 
 
-#define VERSION "0.0.6"
+#define VERSION "0.0.7"
 
 #ifdef WIN32
 #define _WINSOCKAPI_
@@ -512,7 +514,7 @@ void update_counter_label(gboolean from_thread)
     gtk_info_bar_set_message_type (GTK_INFO_BAR (bar), GTK_MESSAGE_WARNING);
   }
 
-  gtk_status_icon_set_tooltip (tray_icon, traytext);
+  gtk_status_icon_set_tooltip_text (tray_icon, traytext);
   gtk_label_set_text( GTK_LABEL (label), textbuf);
 
   if (from_thread) gdk_threads_leave();
@@ -743,7 +745,7 @@ int main(int argc, char *argv[])
                             (gpointer) "file.quit");
   item = gtk_menu_item_new_with_label ("File");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-  gtk_menu_bar_append (GTK_MENU_BAR (menu_bar), item);
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
 
   /*
    * MENU::VIEW
@@ -789,7 +791,7 @@ int main(int argc, char *argv[])
 
   item = gtk_menu_item_new_with_label ("View");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-  gtk_menu_bar_append (GTK_MENU_BAR (menu_bar), item);
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
 
   /*
    * MENU::SETTINGS
@@ -807,7 +809,7 @@ int main(int argc, char *argv[])
                             (gpointer) "Hard limit");
   item = gtk_menu_item_new_with_label ("Settings");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-  gtk_menu_bar_append (GTK_MENU_BAR (menu_bar), item);
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
 
 
   /* MENU::HELP */
@@ -818,9 +820,9 @@ int main(int argc, char *argv[])
                             G_CALLBACK (help_about),
                             (gpointer) "help.about");
   item = gtk_menu_item_new_with_label ("Help");
-  gtk_menu_item_right_justify ( GTK_MENU_ITEM (item));
+  gtk_menu_item_set_right_justified ( GTK_MENU_ITEM (item), TRUE);
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), menu);
-  gtk_menu_bar_append (GTK_MENU_BAR (menu_bar), item);
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), item);
 
 
   /*
@@ -907,8 +909,8 @@ int main(int argc, char *argv[])
   gtk_menu_shell_append (GTK_MENU_SHELL (tray_menu), tray_menu_item_show);
   gtk_menu_shell_append (GTK_MENU_SHELL (tray_menu), tray_menu_item_quit);
   gtk_widget_show_all (tray_menu);
-  g_signal_connect(GTK_STATUS_ICON (tray_icon), "activate", GTK_SIGNAL_FUNC (tray_icon_activated), window);
-  g_signal_connect(GTK_STATUS_ICON (tray_icon), "popup-menu", GTK_SIGNAL_FUNC (tray_icon_popup), tray_menu);
+  g_signal_connect(GTK_STATUS_ICON (tray_icon), "activate", G_CALLBACK (tray_icon_activated), window);
+  g_signal_connect(GTK_STATUS_ICON (tray_icon), "popup-menu", G_CALLBACK (tray_icon_popup), tray_menu);
   gtk_status_icon_set_visible(tray_icon, FALSE); //set icon initially invisible
   g_signal_connect (G_OBJECT (window), "window-state-event", G_CALLBACK (window_state_event), tray_icon);
 
